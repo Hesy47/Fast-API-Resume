@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import validation as valid
 
 app = FastAPI()
 
@@ -18,3 +19,19 @@ async def admin_panel(admin_pass: int):
 
     return {"Message": "The password is not valid!"}
 
+
+@app.get("/business/{position}")
+async def business(position: valid.ModelName):
+    if position == valid.ModelName.it:
+        return {"Message": "Welcome back IT Master"}
+    elif position == valid.ModelName.social:
+        return {"Message": "Welcome back SOCIAL Master"}
+    elif position == valid.ModelName.sell:
+        return {"Message": "Welcome back SOCIAL Master"}
+
+
+@app.post("/register")
+async def register(user: valid.User):
+    message = f"welcome to our website {user.username}"
+
+    return {"message": message, "information": user}
