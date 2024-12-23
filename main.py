@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from models import engine, SessionLocal, Base
 from models import User
-from schema import get_user_schema
+from schema import get_user_schema, create_user_schema
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
@@ -37,16 +37,29 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
     return user
 
 
-# @app.post("/signup")
-# def signup(user: get_users_validate, db: Session = Depends(get_db)):
-#     db_user = db.query(User).filter(User.email == user.email).first()
-#     if db_user:
-#         raise HTTPException(status_code=400, detail="Email already registered")
-#     new_user = User(name=user.name, email=user.email, password=user.password)
+@app.post("/signup")
+def signup(user: create_user_schema, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.email == user.email).first()
 
-#     db.add(new_user)
-#     db.commit()
-#     db.refresh(new_user)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    new_user = User(name=user.name, email=user.email, password=user.password)
 
-#     message = "Signup was successful"
-#     return {"Message": message, "information": new_user}
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    message = "Signup was successful"
+    return {"Message": message, "information": new_user}
+
+
+@app.delete("/remove-user/{user_id}", response_model=dict)
+def remove_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db.delete(user)
+    db.commit()
+    return {"Message": f"user {user.name} has been deleted successfully"}
