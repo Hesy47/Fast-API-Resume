@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from random import choices
 from string import ascii_lowercase
 from typing import List
+from datetime import timedelta, datetime
 from models import engine, SessionLocal, Base
 from models import User, Token
 from schema import GetUserSchema, CreateUserSchema, UpdateUserInfoSchema
@@ -18,6 +19,11 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def token_expire_time():
+    expires_at = datetime.now() + timedelta(hours=3)
+    return str(expires_at)
 
 
 def token_generator():
@@ -87,7 +93,11 @@ def login(user: LoginSchema, db: Session = Depends(get_db)):
     if not db_user or user.password != db_user.password:
         raise HTTPException("Invalid Username or PassWord")
 
-    db_token = Token(user_id=db_user.id, Token=token_generator())
+    db_token = Token(
+        user_id=db_user.id,
+        token=token_generator(),
+        expires_at=token_expire_time(),
+    )
 
     return {
         "Message": "Login successfully!",
