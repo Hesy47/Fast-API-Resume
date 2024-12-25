@@ -13,19 +13,24 @@ class GetUserSchema(BaseModel):
 class CreateUserSchema(BaseModel):
     username: str
     email: str
+    phone_number: str
     password: str
     password_confirmation: str
 
     @model_validator(mode="after")
     def general_validation(value):
         error_message = "The password and password confirmation are not match"
+        error_message_2 = "The length phone must be exact 11 characters"
 
         if not value.password == value.password_confirmation:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=error_message,
             )
-
+        if not len(value.phone_number) == 11:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=error_message_2
+            )
         return value
 
     @field_validator("password")
@@ -52,12 +57,6 @@ class CreateUserSchema(BaseModel):
 class LoginSchema(BaseModel):
     username: str
     password: str
-
-
-class CreateTokenSchema(BaseModel):
-    token: str = Field(readOnly=True)
-    created_at: str = Field(readOnly=True)
-    expires_at: str = Field(readOnly=True)
 
 
 class UpdateUserInfoSchema(BaseModel):
