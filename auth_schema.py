@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from pydantic import BaseModel, field_validator, model_validator, Field
+from pydantic import BaseModel, field_validator, model_validator
 from re import match
 
 
