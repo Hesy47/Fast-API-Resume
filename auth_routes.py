@@ -5,6 +5,7 @@ from models import User, Token
 from auth_schema import GetUserSchema, CreateUserSchema
 from auth_schema import UpdateUserInfoSchema, LoginSchema
 from dependencies import get_db, token_expire_time, token_generator
+from dependencies import hashed_password_generator, hashed_password_checker
 
 router = APIRouter()
 
@@ -46,7 +47,7 @@ def signup(user: CreateUserSchema, db: Session = Depends(get_db)):
         username=user.username,
         email=user.email,
         phone_number=user.phone_number,
-        password=user.password,
+        password=hashed_password_generator(user.password),
     )
 
     db.add(new_user)
@@ -111,13 +112,13 @@ def edit_profile(
             detail="User not found",
         )
 
-    if not db_user.password == user.old_password:
+    if not hashed_password_checker(user.old_password,db_user.password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="your current password is wrong",
         )
 
-    db_user.password = user.password
+    db_user.password = hashed_password_generator(user.password)
 
     db.commit()
     db.refresh(db_user)
