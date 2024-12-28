@@ -4,14 +4,14 @@ from typing import List
 from models import User, Token
 from auth_schema import GetUserSchema, CreateUserSchema
 from auth_schema import UpdateUserInfoSchema, LoginSchema
-from dependencies import get_db, token_expire_time, token_generator
+from dependencies import get_db, token_expire_time, token_generator, validate_token
 from dependencies import hashed_password_generator, hashed_password_checker
 
 router = APIRouter()
 
 
 @router.get("/users", response_model=List[GetUserSchema])
-def get_users(db: Session = Depends(get_db)):
+def get_users(db: Session = Depends(get_db), db_token: Token = Depends(validate_token)):
     users = db.query(User).all()
 
     if not users:
@@ -19,17 +19,27 @@ def get_users(db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="There is no user in your database!",
         )
+
     return users
 
 
 @router.get("/users/{user_id}", response_model=GetUserSchema)
-def get_user(user_id: int, db: Session = Depends(get_db)):
+def get_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    db_token: Token = Depends(validate_token),
+):
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
+        )
+    if not user.id == db_token.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="This token is not belongs to the user!",
         )
     return user
 
@@ -69,14 +79,21 @@ def signup(user: CreateUserSchema, db: Session = Depends(get_db)):
 def login(user: LoginSchema, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
 
-    if not db_user or user.password != db_user.password:
-        raise HTTPException("Invalid Username or PassWord")
+    if not db_user or not hashed_password_checker(user.password, db_user.password):
+        raise HTTPException(
+            detail="Invalid Username or PassWord",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
 
     db_token = Token(
         user_id=db_user.id,
         token=token_generator(),
         expires_at=token_expire_time(),
     )
+
+    db.add(db_token)
+    db.commit()
+    db.refresh(db_token)
 
     return {
         "Message": "Login successfully!",
@@ -112,7 +129,7 @@ def edit_profile(
             detail="User not found",
         )
 
-    if not hashed_password_checker(user.old_password,db_user.password):
+    if not hashed_password_checker(user.old_password, db_user.password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="your current password is wrong",

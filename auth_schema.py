@@ -8,6 +8,7 @@ class GetUserSchema(BaseModel):
     username: str
     email: str
     password: str
+    rule: str
 
 
 class CreateUserSchema(BaseModel):

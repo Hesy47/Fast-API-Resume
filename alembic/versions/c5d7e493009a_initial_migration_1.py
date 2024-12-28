@@ -1,8 +1,8 @@
 """Initial migration 1
 
-Revision ID: ffb1f8d4c019
+Revision ID: c5d7e493009a
 Revises: 
-Create Date: 2024-12-25 14:03:47.871432
+Create Date: 2024-12-28 11:29:47.036061
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'ffb1f8d4c019'
+revision: str = 'c5d7e493009a'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -27,6 +27,7 @@ def upgrade() -> None:
     sa.Column('password', sa.String(length=255), nullable=False),
     sa.Column('phone_number', sa.String(length=11), nullable=False),
     sa.Column('join_date', sa.Date(), nullable=True),
+    sa.Column('rule', sa.Enum('CREATOR', 'ADMIN', 'USER', name='userrole'), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email'),
     sa.UniqueConstraint('phone_number'),
@@ -39,7 +40,7 @@ def upgrade() -> None:
     sa.Column('expires_at', sa.DateTime(), nullable=False),
     sa.Column('is_revoked', sa.Boolean(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], onupdate='CASCADE', ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###

@@ -1,7 +1,8 @@
 from sqlalchemy import Column, create_engine, func, ForeignKey
-from sqlalchemy import Integer, String, Date, Boolean, DateTime
+from sqlalchemy import Integer, String, Date, Boolean, DateTime, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
+import enum
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 
@@ -9,6 +10,12 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
+
+class UserRole(enum.Enum):
+    CREATOR = "creator"
+    ADMIN = "admin"
+    USER = "user"
 
 
 class User(Base):
@@ -20,6 +27,7 @@ class User(Base):
     password = Column(String(255), nullable=False)
     phone_number = Column(String(11), unique=True, nullable=False)
     join_date = Column(Date, default=func.current_date())
+    rule = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
     token = relationship("Token", back_populates="user")
 
 
@@ -31,5 +39,9 @@ class Token(Base):
     created_at = Column(DateTime, default=func.now(), nullable=False)
     expires_at = Column(DateTime, nullable=False)
     is_revoked = Column(Boolean, default=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+    )
     user = relationship("User", back_populates="token")
